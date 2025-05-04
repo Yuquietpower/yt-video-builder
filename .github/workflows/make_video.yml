@@ -1,0 +1,31 @@
+name: MakeVideo
+on:
+  push:
+    branches: [ build ]
+
+jobs:
+  build_video:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Compose MP4
+        run: |
+          ffmpeg -y -loop 1 -i bg.jpg -i audio.mp3 \
+            -c:v libx264 -tune stillimage -pix_fmt yuv420p \
+            -c:a aac -b:a 192k -shortest output.mp4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: video
+          path: output.mp4
+
+      - name: Notify Make
+        env:
+          MAKE_WEBHOOK: ${{ secrets.MAKE_WEBHOOK }}
+        run: |
+          curl -F "file=@output.mp4" -F "filename=output.mp4" "$MAKE_WEBHOOK"
